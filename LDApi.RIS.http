@@ -1,6 +1,5 @@
 @LDApi.RIS_HostAddress = http://localhost:5033
 
-GET {{LDApi.RIS_HostAddress}}/weatherforecast/
-Accept: application/json
-
 ###
+GET {{LDApi.RIS_HostAddress}}/Reports/
+Accept: application/json
