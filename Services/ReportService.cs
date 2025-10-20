@@ -33,7 +33,8 @@ namespace LDApi.RIS.Services
                     FirstName = parts.Length > 1 ? parts[1] : "Unknown",
                     DateOfBirth = "Unknown",
                     DateReport = parts.Length > 2 ? parts[2] : "Unknown",
-                    Path = pathFileName + fileName + ".pdf"
+                    Path = pathFileName + fileName + ".pdf",
+                    TypeDocument = "Laximétrie Dynamique"
                 };
                 reports.Add(r);
 

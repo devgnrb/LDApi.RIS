@@ -8,5 +8,6 @@
         public string DateOfBirth { get; set; } = "Unknown";
         public required string DateReport { get; set; }
         public required string Path { get; set; }
+        public required string TypeDocument { get; set; } = "Laximétrie Dynamique";
     }
 }

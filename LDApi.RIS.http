@@ -1,5 +1,5 @@
 @LDApi.RIS_HostAddress = http://localhost:5033
 
 ###
-GET {{LDApi.RIS_HostAddress}}/Reports/
+GET {{LDApi.RIS_HostAddress}}/reports/
 Accept: application/json
