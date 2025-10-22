@@ -1,38 +1,50 @@
+using LDApi.RIS.Interfaces;
 using LDApi.RIS.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// -------------------------
 // Ajout des services
+// -------------------------
 builder.Services.AddSingleton<ReportService>();
-builder.Services.AddSingleton<HL7Service>();
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// communication avec d'autres services via HTTP Front
+builder.Services.AddSingleton<IMllpClientService>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var host = config["Mllp:Host"] ?? "127.0.0.1";
+    var port = int.Parse(config["Mllp:Port"] ?? "6661");
+    return new MllpClientService(host, port);
+});
+
+builder.Services.AddScoped<HL7Service>();
+
+// Active les contrôleurs API
+builder.Services.AddControllers();
+
+// -------------------------
+// CORS pour ton front React
+// -------------------------
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact",
-        policy => policy.WithOrigins("http://localhost:3000")
-                        .AllowAnyHeader()
-                        .AllowAnyMethod());
+    options.AddPolicy("AllowReact", policy =>
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod());
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+// -------------------------
+// Middleware
+// -------------------------
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
 app.UseCors("AllowReact");
+
+// Mappe les contrôleurs
 app.MapControllers();
 
+// -------------------------
+// Lancement de l'application
+// -------------------------
 app.Run();

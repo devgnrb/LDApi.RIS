@@ -7,6 +7,8 @@ namespace LDApi.RIS.Services
     {
         private readonly string _reportDirectory;
 
+        // generate a singleton service 
+
         public ReportService(IConfiguration config)
         {
             _reportDirectory = Path.Combine(
@@ -31,9 +33,9 @@ namespace LDApi.RIS.Services
                     IdReport = cpt++,
                     LastName = parts.Length > 0 ? parts[0] : "Unknown",
                     FirstName = parts.Length > 1 ? parts[1] : "Unknown",
-                    DateOfBirth = "Unknown",
-                    DateReport = parts.Length > 2 ? parts[2] : "Unknown",
-                    Path = pathFileName + fileName + ".pdf",
+                    DateOfBirth = parts.Length > 2 ? parts[2] : "Unknown",
+                    DateReport = parts.Length > 3 ? parts[3] : "Unknown",
+                    Path = pathFileName +"\\"+ fileName + ".pdf",
                     TypeDocument = "Laximétrie Dynamique"
                 };
                 reports.Add(r);

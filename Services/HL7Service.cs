@@ -6,7 +6,7 @@ namespace LDApi.RIS.Services
     public class HL7Service
     {
 
-        public string GenerateHL7Message(ReportDto dto, string clientApp, string client)
+        public string GenerateHL7Message(ReportDto dto, string targetApp, string targetFacility)
         {
             var sb = new StringBuilder();
 
@@ -15,25 +15,24 @@ namespace LDApi.RIS.Services
 
             // Construction des segments HL7
             // Segment MSH
-            sb.AppendLine($"MSH|^~\\&|LDApiRIS|Genourob|{TargetApp}|{TargetFacility}|{DateTime.Now:yyyyMMddHHmmss}||ORU^R01|{messageControlId}|P|2.3");
+            sb.AppendLine($"MSH|^~\\&|LDApiRIS|Genourob|{targetApp}|{targetFacility}|{DateTime.Now:yyyyMMddHHmmss}||RPA^R33|{messageControlId}|P|2.3");
 
             // PID - Patient Identification
-            // Conversion de la date de naissance en format YYYYMMDD
-            DateTime date = DateTime.ParseExact(dto.DateOfBirth, "ddMMyyyy", null);
-            string formattedDateOfBirth = date.ToString("yyyyMMdd");
 
-            sb.AppendLine($"PID|1||{dto.IdReport}||{dto.LastName}^{dto.FirstName}||{formattedDateOfBirth:yyyyMMdd}|||||||||||");
+
+            sb.AppendLine($"PID|1||{dto.IdReport}||{dto.LastName}^{dto.FirstName}||{dto.DateOfBirth:yyyyMMdd}|||||||||||");
 
             // TXA - Document notification
 
 
-            sb.AppendLine($"TXA|1|PN|{dto.TypeDocument}|{dto.TypeDocument}|{dto.DateReport:yyyyMMddHHmmss}|||{dto.Path}||||||||||");
+            sb.AppendLine($"TXA|1|PN|{dto.TypeDocument}|{dto.DateReport:yyyyMMddHHmmss}|||{dto.DateReport:yyyyMMdd}||||||||||");
 
             // OBX - Observation segment (base64 du PDF éventuellement)
             if (File.Exists(dto.Path))
             {
                 var pdfBytes = File.ReadAllBytes(dto.Path);
                 var base64 = Convert.ToBase64String(pdfBytes);
+                var unBase64 = Convert.FromBase64String(base64);
                 sb.AppendLine($"OBX|1|ED|PDF^Base64^HL7|1|^{base64}||||||F");
             }
 
