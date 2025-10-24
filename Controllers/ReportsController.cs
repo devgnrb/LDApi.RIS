@@ -1,6 +1,7 @@
 ﻿using LDApi.RIS.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using LDApi.RIS.Interfaces;
 
 namespace LDApi.RIS.Controllers
 {
@@ -8,9 +9,9 @@ namespace LDApi.RIS.Controllers
     [Route("api/[controller]")]
     public class ReportsController : ControllerBase
     {
-        private readonly ReportService _reportService;
+        private readonly IReportService _reportService;
 
-        public ReportsController(ReportService reportService)
+        public ReportsController(IReportService reportService)
         {
             _reportService = reportService;
         }

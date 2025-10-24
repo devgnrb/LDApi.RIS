@@ -6,16 +6,15 @@ var builder = WebApplication.CreateBuilder(args);
 // -------------------------
 // Ajout des services
 // -------------------------
-builder.Services.AddSingleton<ReportService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IHL7Service, HL7Service>();
 
-builder.Services.AddSingleton<IMllpClientService>(sp =>
+builder.Services.AddSingleton<IMllpConfigurationService, MllpConfigurationService>();
+builder.Services.AddScoped<IMllpClientService>(sp =>
 {
-    var config = sp.GetRequiredService<IConfiguration>();
-    var host = config["Mllp:Host"] ?? "127.0.0.1";
-    var port = int.Parse(config["Mllp:Port"] ?? "6661");
-    return new MllpClientService(host, port);
+    var configService = sp.GetRequiredService<IMllpConfigurationService>();
+    return new MllpClientService(configService.Host, configService.Port);
 });
-
 builder.Services.AddScoped<HL7Service>();
 
 // Active les contrôleurs API

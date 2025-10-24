@@ -1,12 +1,11 @@
 ﻿using LDApi.RIS.Dto;
 using System.Text;
-
+using LDApi.RIS.Interfaces;
 namespace LDApi.RIS.Services
 {
-    public class HL7Service
+    public class HL7Service : IHL7Service
     {
-
-        public string GenerateHL7Message(ReportDto dto, string targetApp, string targetFacility)
+       public string GenerateHL7Message(ReportDto dto, string targetApp, string targetFacility)
         {
             var sb = new StringBuilder();
 

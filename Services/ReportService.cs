@@ -1,9 +1,10 @@
 ﻿using LDApi.RIS.Dto;
 using LDApi.RIS.Utils;
+using LDApi.RIS.Interfaces;
 
 namespace LDApi.RIS.Services
 {
-    public class ReportService
+    public class ReportService : IReportService
     {
         private readonly string _reportDirectory;
 
