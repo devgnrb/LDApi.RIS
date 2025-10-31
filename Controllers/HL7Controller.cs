@@ -37,6 +37,15 @@ namespace LDApi.RIS.Controllers
             try
             {
                 var ack = await _mllp.SendMessageAsync(message);
+                // Inserer une meta donnée de l'envoi HL7 dans le rapport 
+                if (ack != null)
+                {
+                    MetaDataPDFService metaDataPDFService = new MetaDataPDFService();
+                    metaDataPDFService.AddMetaDataToPdf(report.Path, "Envoi Réussi");
+
+                    metaDataPDFService.CheckMetaData(report.Path, "EnvoiHL7", "Envoi Réussi");
+                }
+
                 return Ok(new { hl7 = message, ack });
             }
             catch (Exception ex)
@@ -45,6 +54,18 @@ namespace LDApi.RIS.Controllers
             }
         }
 
+        [HttpGet("pdf/envoi-status/{id}")]
+        public IActionResult GetEnvoiStatus(int id)
+        {
+            var report = _reportService.GetReportById(id); // méthode existante pour récupérer le report
+            if (report == null)
+                return NotFound("Rapport introuvable");
+
+            var metaService = new MetaDataPDFService();
+            string? status = metaService.GetMetaDataValue(report.ToString(), "EnvoiHL7") ?? "";
+
+            return Ok(new { envoiHL7 = status });
+        }
 
     }
 }

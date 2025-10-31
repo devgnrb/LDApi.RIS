@@ -31,7 +31,7 @@ namespace LDApi.RIS.Services
             {
                 var pdfBytes = File.ReadAllBytes(dto.Path);
                 var base64 = Convert.ToBase64String(pdfBytes);
-                var unBase64 = Convert.FromBase64String(base64);
+
                 sb.AppendLine($"OBX|1|ED|PDF^Base64^HL7|1|^{base64}||||||F");
             }
 
