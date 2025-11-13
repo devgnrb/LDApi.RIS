@@ -1,8 +1,8 @@
 ﻿using LDApi.RIS.Dto;
-using LDApi.RIS.Utils;
 using LDApi.RIS.Interfaces;
-using PdfSharp.Pdf;
+using LDApi.RIS.Utils;
 using PdfSharp.Pdf.IO;
+using Xunit;
 
 namespace LDApi.RIS.Services
 {
@@ -16,8 +16,7 @@ namespace LDApi.RIS.Services
         {
             _reportDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-            "Pdf_Dyneelax"
-);
+            "Pdf_Dyneelax");
         }
 
         public async Task<IEnumerable<ReportDto>> GetAllReports()
@@ -32,7 +31,7 @@ namespace LDApi.RIS.Services
                 string? pathFileName = Path.GetDirectoryName(file);
                 // gestion du pdf nommé prénom dateNaissance dateReport
                 PdfSharp.Pdf.PdfDocument document = PdfSharp.Pdf.IO.PdfReader.Open(file, PdfDocumentOpenMode.Import);
-               
+
                 var metadata = document.Info.Keywords.Split(",");
                 var metaService = new MetaDataPDFService();
                 ReportDto r = new ReportDto()
@@ -58,5 +57,17 @@ namespace LDApi.RIS.Services
 
             return file != null ? File.ReadAllBytes(file) : null;
         }
+
+        public ReportDto GetReport(int id)
+        {
+
+            var r = GetAllReports().Result.FirstOrDefault(r => r.IdReport == id);
+            if (r == null)
+            {
+                throw new Exception("Report not found");
+            }
+            return r;
+        }
+
     }
 }

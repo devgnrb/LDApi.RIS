@@ -1,12 +1,8 @@
-﻿using Xunit;
-using Moq;
-using Microsoft.AspNetCore.Mvc;
-using LDApi.RIS.Controllers;
-using LDApi.RIS.Services;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using LDApi.RIS.Controllers;
 using LDApi.RIS.Dto;
 using LDApi.RIS.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
 
 namespace LDApi.RIS.Tests.Controllers
 {

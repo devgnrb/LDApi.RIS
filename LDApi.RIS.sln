@@ -3,13 +3,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
-
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LDApi.RIS", "LDApi.RIS\LDApi.RIS.csproj", "{689652AA-BE23-41BB-91B6-23F25A3A9937}"
 EndProject
-
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LDApi.RIS.Tests", "LDApi.RIS.Tests\LDApi.RIS.Tests.csproj", "{3CC683DE-FFEB-4611-8C92-2A682A319BD4}"
 EndProject
-
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,4 +29,3 @@ Global
 		SolutionGuid = {03392334-D1BC-4AA5-8575-F235D76366F0}
 	EndGlobalSection
 EndGlobal
-

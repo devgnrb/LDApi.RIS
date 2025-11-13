@@ -1,14 +1,10 @@
-﻿using Xunit;
-using Moq;
-using Microsoft.AspNetCore.Mvc;
-using LDApi.RIS.Controllers;
-using LDApi.RIS.Services;
+﻿using LDApi.RIS.Controllers;
 using LDApi.RIS.Dto;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using LDApi.RIS.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
 using System.ComponentModel.Design;
+using System.Text.Json;
 
 namespace LDApi.RIS.Tests.Controllers
 {
@@ -33,36 +29,69 @@ namespace LDApi.RIS.Tests.Controllers
         }
 
         [Fact]
-        public async Task SendHl7MessageById_ShouldReturnOk_WhenReportExists()
+        public async Task SendHl7MessageById_ShouldReturnOk_WhenValid()
         {
-            // Arrange
-            int reportId = 1;
-            var fakeReports = new List<ReportDto>
+            var mockReportService = new Mock<IReportService>();
+            mockReportService.Setup(r => r.GetAllReports()).ReturnsAsync(new List<ReportDto>
             {
-                new ReportDto { IdReport = reportId, LastName = "Doe", FirstName = "John", DateOfBirth = "19800101", DateReport = "20250101120012", Path = "/path/Doe.pdf", TypeDocument = "Laximétrie Dynamique", EnvoiHL7 ="" }
-            };
+                new ReportDto { IdReport = 1,             
+                        FirstName = "John",
+                        LastName = "Doe",
+                        DateOfBirth = "19800101",
+                        TypeDocument = "Laximétrie Dynamique",
+                        DateReport = "20251107143000",
+                        Path = "fakepath",
+                        EnvoiHL7 = "" }
+            });
 
-            _mockReportService
-                .Setup(s => s.GetAllReports())
-                .ReturnsAsync(fakeReports);
+            var mockHl7 = new Mock<IHL7Service>();
+            mockHl7.Setup(h => h.GenerateHL7Message(It.IsAny<ReportDto>(), It.IsAny<string>(), It.IsAny<string>()))
+                   .Returns("MSH|^~\\&|App|Client|Dest|Recv|20251113134902||RPA^R33|1234|P|2.3\rPID|1||1||DOE^JOHN||19800101");
 
-            _mockHl7Service
-                .Setup(s => s.GenerateHL7Message(It.IsAny<ReportDto>(), "clientApp", "client"))
-                .Returns("FAKE_HL7_MESSAGE");
+            var mockMllp = new Mock<IMllpClientService>();
+            mockMllp.Setup(m => m.SendMessageAsync(It.IsAny<string>()))
+                    .ReturnsAsync("MSH|^~\\&|LDApiRIS|Genourob|LDApiRIS|Genourob|20251113134902||ACK^R33|1234|P|2.3\rMSA|AA|1234");
 
-            _mockMllp
-                .Setup(s => s.SendMessageAsync("FAKE_HL7_MESSAGE"))
-                .ReturnsAsync("ACK");
+            var controller = new HL7Controller(mockHl7.Object, mockMllp.Object, mockReportService.Object);
+
+            var dto = new HL7SendDto { Id = 1, Client = "Client", ClientApp = "App" };
 
             // Act
-            var result = await _controller.SendHl7MessageById(new HL7SendDto { Client="test", ClientApp="testapp",Id = reportId});
-
-            // Assert
+            var result = await controller.SendHl7MessageById(dto);
             var okResult = Assert.IsType<OkObjectResult>(result);
-            dynamic value = okResult.Value;
-            Assert.Equal("FAKE_HL7_MESSAGE", value.hl7);
-            Assert.Equal("ACK", value.ack);
+            var json = JsonSerializer.Serialize(okResult.Value);
+            Console.WriteLine(json);
+            var data = JsonSerializer.Deserialize<HL7ResponseDto>(json);
+
+            try
+            {
+                if (data.Hl7 is null)
+                {
+                    throw new Exception("HL7 message is null");
+                }
+                else
+                {
+                    Assert.Contains("correcte", data.Hl7);
+                }
+                if (data.Ack is null)
+                {
+                    throw new Exception("ACK message is null");
+                }
+                else
+                {
+
+                    Assert.Contains("Accepté", data.Ack);
+                }
+            }
+            catch (Exception ex)
+            {
+
+                throw new Exception(ex.Message+"\n"+ex.StackTrace+"\n"+ex.Source);
+            }
+
+
         }
+
 
         [Fact]
         public async Task SendHl7MessageById_ShouldReturnNotFound_WhenReportDoesNotExist()
@@ -91,11 +120,12 @@ namespace LDApi.RIS.Tests.Controllers
             };
 
             _mockReportService.Setup(s => s.GetAllReports()).ReturnsAsync(fakeReports);
-            _mockHl7Service.Setup(s => s.GenerateHL7Message(It.IsAny<ReportDto>(), "clientApp", "client")).Returns("FAKE_HL7_MESSAGE");
+            _mockHl7Service.Setup(s => s.GenerateHL7Message(It.IsAny<ReportDto>(), "clientApp", "client"))
+                  .Returns("MSH|^~\\&|App|Client|clientApp|Recv|20251113134902||RPA^R33|123456|P|2.3\rPID|1||1||DOE^JOHN||19800101");
             _mockMllp.Setup(s => s.SendMessageAsync(It.IsAny<string>())).ThrowsAsync(new System.Exception("Connection error"));
 
             // Act
-            var result = await _controller.SendHl7MessageById(new HL7SendDto { Client = "test", ClientApp = "testapp", Id = reportId });
+            var result = await _controller.SendHl7MessageById(new HL7SendDto { Client = "client", ClientApp = "clientApp", Id = reportId });
 
             // Assert
             var statusResult = Assert.IsType<ObjectResult>(result);

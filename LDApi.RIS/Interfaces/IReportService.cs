@@ -1,4 +1,5 @@
 ﻿using LDApi.RIS.Dto;
+using Xunit;
 
 namespace LDApi.RIS.Interfaces
 {
@@ -6,5 +7,7 @@ namespace LDApi.RIS.Interfaces
     {
         Task<IEnumerable<ReportDto>> GetAllReports();
         byte[]? GetReportById(int id);
+        ReportDto? GetReport(int id);
+
     }
-}  
+}

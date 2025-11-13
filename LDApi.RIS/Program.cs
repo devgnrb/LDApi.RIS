@@ -1,6 +1,6 @@
 using LDApi.RIS.Interfaces;
 using LDApi.RIS.Services;
-
+using LDApi.RIS.Providers;
 var builder = WebApplication.CreateBuilder(args);
 
 // -------------------------
@@ -8,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 // -------------------------
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IHL7Service, HL7Service>();
+builder.Services.AddScoped<IDateTimeProvider, SystemDateTimeProvider>();
+builder.Services.AddScoped<IGuidProvider, SystemGuidProvider>();
 
 builder.Services.AddSingleton<IMllpConfigurationService, MllpConfigurationService>();
 builder.Services.AddScoped<IMllpClientService>(sp =>
@@ -47,3 +49,6 @@ app.MapControllers();
 // Lancement de l'application
 // -------------------------
 app.Run();
+
+
+public partial class Program { }

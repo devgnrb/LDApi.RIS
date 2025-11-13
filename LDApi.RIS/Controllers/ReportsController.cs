@@ -1,7 +1,5 @@
-﻿using LDApi.RIS.Services;
-using Microsoft.AspNetCore.Http;
+﻿using LDApi.RIS.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using LDApi.RIS.Interfaces;
 
 namespace LDApi.RIS.Controllers
 {

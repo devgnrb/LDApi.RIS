@@ -1,5 +1,4 @@
-﻿using LDApi.RIS.Dto;
-using PdfSharp.Pdf;
+﻿using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
 
 namespace LDApi.RIS.Services

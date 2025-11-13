@@ -1,16 +1,24 @@
 ﻿using LDApi.RIS.Dto;
-using System.Text;
 using LDApi.RIS.Interfaces;
+using System.Text;
 namespace LDApi.RIS.Services
 {
     public class HL7Service : IHL7Service
     {
-       public string GenerateHL7Message(ReportDto dto, string targetApp, string targetFacility)
+        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly IGuidProvider _guidProvider;
+
+        public HL7Service(IDateTimeProvider dateTimeProvider, IGuidProvider guidProvider)
+        {
+            _dateTimeProvider = dateTimeProvider;
+            _guidProvider = guidProvider;
+        }
+        public string GenerateHL7Message(ReportDto dto, string targetApp, string targetFacility)
         {
             var sb = new StringBuilder();
 
             // Génération de l'identifiant unique du message
-            string messageControlId = Guid.NewGuid().ToString("N").Substring(0, 10);
+            string messageControlId = _guidProvider.NewGuid().ToString("N").Substring(0, 10);
 
             // Construction des segments HL7
             // Segment MSH
