@@ -1,6 +1,7 @@
 using LDApi.RIS.Interfaces;
 using LDApi.RIS.Services;
 using LDApi.RIS.Providers;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // -------------------------
@@ -44,6 +45,9 @@ app.UseCors("AllowReact");
 
 // Mappe les contrôleurs
 app.MapControllers();
+
+// Fallback : toutes les routes non-API redirigent vers index.html
+app.MapFallbackToFile("index.html");
 
 // -------------------------
 // Lancement de l'application
