@@ -22,7 +22,7 @@ export function useReportSync() {
   const [results, setResults] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/reports")
+    fetch("/api/reports")
       .then(res => res.json())
       .then((data: Report[]) => setReports(data))
       .catch(err => console.error("Erreur chargement rapports:", err));
@@ -31,7 +31,7 @@ export function useReportSync() {
   const syncReports = async (): Promise<void> => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/hl7/send-batch", { method: "POST" });
+      const res = await fetch("/api/hl7/send-batch", { method: "POST" });
       const data: any[] = await res.json();
       setResults(data);
     } catch (error) {
@@ -44,7 +44,7 @@ export function useReportSync() {
 
   const sendSingleReport = async (reportId: string | number): Promise<SingleReportResult> => {
     try {
-      const response = await fetch(`http://localhost:5000/api/hl7/send/${reportId}`, { method: "POST" });
+      const response = await fetch(`/api/hl7/send/${reportId}`, { method: "POST" });
       if (!response.ok) throw new Error("Erreur serveur : " + response.status);
       const data = await response.json();
       return { success: true, ack: data.ack, hl7: data.hl7 };

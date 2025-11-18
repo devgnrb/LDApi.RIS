@@ -23,7 +23,7 @@ const ReportList: React.FC = () => {
     const fetchReports = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`${apiUrl}/api/Reports`);
+        const response = await fetch(`/api/Reports`);
         const data = await response.json();
         setReports(data);
 
@@ -32,7 +32,7 @@ const ReportList: React.FC = () => {
         await Promise.all(
           data.map(async ( report: Report)=>{
             try{
-              const res = await fetch(`${apiUrl}/api/pdf/envoi-status/${report.idReport}`);
+              const res = await fetch(`/api/pdf/envoi-status/${report.idReport}`);
               if (!res.ok) throw new Error("Erreur lors de la récupération du statut HL7");
               const statusData: { envoiHL7?: string } = await res.json();
               

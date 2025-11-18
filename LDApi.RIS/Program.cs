@@ -1,6 +1,8 @@
 using LDApi.RIS.Interfaces;
 using LDApi.RIS.Services;
 using LDApi.RIS.Providers;
+using System.ComponentModel;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,7 +22,7 @@ builder.Services.AddScoped<IMllpClientService>(sp =>
 });
 builder.Services.AddScoped<HL7Service>();
 
-// Active les contrôleurs API
+// Active les contrï¿½leurs API
 builder.Services.AddControllers();
 
 // -------------------------
@@ -29,7 +31,7 @@ builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", policy =>
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins("*")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
@@ -39,20 +41,39 @@ var app = builder.Build();
 // -------------------------
 // Middleware
 // -------------------------
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseAuthorization();
-app.UseCors("AllowReact");
+//app.UseCors("AllowReact");
 
-// Mappe les contrôleurs
+
+
+// Servir les fichiers statiques
+var uiPath = Path.Combine(Directory.GetCurrentDirectory(),"../ldapi-ris-ts/build");
+app.UseDefaultFiles(new DefaultFilesOptions
+{
+    FileProvider = new PhysicalFileProvider(uiPath)
+});
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uiPath),
+    RequestPath = ""
+});
+
+app.MapFallbackToFile("index.html",new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uiPath)
+});
+
+
+
+
+// Mappe les contrï¿½leurs
 app.MapControllers();
-
-// Fallback : toutes les routes non-API redirigent vers index.html
-app.MapFallbackToFile("index.html");
-
 // -------------------------
 // Lancement de l'application
 // -------------------------
-app.Run();
+app.Run("http://0.0.0.0:5033");
 
 
 public partial class Program { }
