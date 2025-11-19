@@ -88,10 +88,7 @@ namespace LDApi.RIS.Services
 
         public byte[]? GetReportById(int id)
         {
-            // var files = FileHelper.GetPdfFiles(_reportDirectory);
-            // var file = files.FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).GetHashCode() == id);
 
-            // return file != null ? File.ReadAllBytes(file) : null;
             var files = FileHelper.GetPdfFiles(_reportDirectory).ToList();
 
             if (id < 0 || id >= files.Count)

@@ -3,7 +3,7 @@ import Hl7Status from "./Hl7Status";
 import { useApi } from "../context/ApiContext";
 
 interface Report {
-  idReport: string;
+  idReport: number;
   lastName: string;
   firstName: string;
   dateOfBirth: string;
@@ -15,9 +15,10 @@ interface Report {
 
 interface ReportCardProps {
   report: Report;
+  onStatusChange?: (idReport: number, status: string) => void;
 }
 
-export default function ReportCard({ report }: ReportCardProps) {
+export default function ReportCard({ report, onStatusChange }: ReportCardProps) {
   const { apiUrl, apiClient, apiClientApp } = useApi();
   const [status, setStatus] = useState<"loading" | "success" | "error" | null>(null);
   const [hl7, setHl7] = useState("");
@@ -42,6 +43,8 @@ export default function ReportCard({ report }: ReportCardProps) {
       setHl7(result.hl7);
       setAck(result.ack);
       setStatus("success");
+      // 🔥 Mise à jour immédiate du statut dans le parent
+      onStatusChange?.(report.idReport, "Envoi Réussi");
 
     } catch (err) {
       console.error(err);

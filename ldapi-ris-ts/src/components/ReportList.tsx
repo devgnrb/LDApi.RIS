@@ -3,7 +3,7 @@ import ReportCard from "./ReportCard";
 import { useApi } from "../context/ApiContext";
 
 interface Report {
-  idReport: string;
+  idReport: number;
   lastName: string;
   firstName: string;
   dateOfBirth: string;
@@ -33,7 +33,14 @@ const ReportList: React.FC = () => {
   };
   fetchReports();
 }, [apiUrl]);
-
+  // 🔥 appelé quand un HL7 est envoyé avec succès
+  const handleStatusChange = (idReport: number, newStatus: string) => {
+    setReports(prev =>
+      prev.map(r =>
+        r.idReport === idReport ? { ...r, envoiHL7: newStatus } : r
+      )
+    );
+  };
   return (
     <div className="p-5">
       {loading ? (
@@ -42,7 +49,9 @@ const ReportList: React.FC = () => {
         <>
           <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {reports.map((report) => (
-              <ReportCard key={report.idReport} report={report} />
+              <ReportCard key={report.idReport} 
+              report={report} 
+              onStatusChange={handleStatusChange}/>
             ))}
           </div>
           {reports.length === 0 && (
