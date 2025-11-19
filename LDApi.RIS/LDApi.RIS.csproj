@@ -13,8 +13,12 @@
     <PackageReference Include="xunit" Version="2.9.3" />
 	  <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
-	<Target Name="CopyReactBuild" AfterTargets="Build">
-	  <Exec Command="xcopy /E /Y &quot;$(ProjectDir)..\ldapi-ris-ts\build\*&quot; &quot;$(ProjectDir)..\wwwroot\&quot;" Condition=" '$(OS)' == 'Windows_NT' " />
-	  <Exec Command="cp -r $(ProjectDir)..ldapi-ris-ts/build/* $(ProjectDir)..wwwroot/" Condition=" '$(OS)' != 'Windows_NT' " />
-	</Target>
+  <Target Name="BuildFrontend" AfterTargets="Publish">
+    <Exec WorkingDirectory="../ldapi-ris-ts" Command="npm install" />
+    <Exec WorkingDirectory="../ldapi-ris-ts" Command="npm run build" />
+    <RemoveDir Directories="../wwwroot" />
+    <MakeDir Directories="../wwwroot" />
+    <Exec WorkingDirectory="../ldapi-ris-ts" Command="xcopy build ..\wwwroot\ /E /I /Y" />
+  </Target>
+
 </Project>

@@ -48,7 +48,8 @@ app.UseCors("AllowReact");
 
 
 // Servir les fichiers statiques
-var uiPath = Path.Combine(Directory.GetCurrentDirectory(),"../ldapi-ris-ts/build");
+//var uiPath = Path.Combine(Directory.GetCurrentDirectory(),"../ldapi-ris-ts/build");
+var uiPath = Path.Combine(Directory.GetCurrentDirectory(),"../wwwroot");
 app.UseDefaultFiles(new DefaultFilesOptions
 {
     FileProvider = new PhysicalFileProvider(uiPath)
