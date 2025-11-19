@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Hl7Status from "./Hl7Status";
 import { useApi } from "../context/ApiContext";
+import { formatDateLocal } from "../utils/dateUtils";
 
 interface Report {
   idReport: number;
@@ -56,8 +57,8 @@ export default function ReportCard({ report, onStatusChange }: ReportCardProps) 
     <div className={cardClasses}>
       <h3 className="text-lg font-semibold text-gray-800 mb-1">{report.lastName} {report.firstName}</h3>
       <p className="text-sm text-gray-600"><span className="font-semibold">ID:</span> {report.idReport}</p>
-      <p className="text-sm text-gray-600"><span className="font-semibold">Date de Naissance:</span> {report.dateOfBirth}</p>
-      <p className="text-sm text-gray-600"><span className="font-semibold">Date Examen:</span> {report.dateReport}</p>
+      <p className="text-sm text-gray-600"><span className="font-semibold">Date de Naissance:</span> {formatDateLocal(report.dateOfBirth)}</p>
+      <p className="text-sm text-gray-600"><span className="font-semibold">Date Examen:</span> {formatDateLocal(report.dateReport)}</p>
       <p className="text-sm text-gray-600"><span className="font-semibold">Statut HL7:</span> {envoiHL7 || "Non envoyé"}</p>
 
       <button
