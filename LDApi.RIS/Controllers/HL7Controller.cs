@@ -98,22 +98,5 @@ namespace LDApi.RIS.Controllers
             }
         }
 
-        [HttpGet("pdf/envoi-status/{id}")]
-        public IActionResult GetEnvoiStatus(int id)
-        {
-            var report = _reportService.GetReport(id);
-            if (report == null)
-                return NotFound("Rapport introuvable");
-;
-            string path = Path.GetDirectoryName(report.Path) ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-            "Pdf_Dyneelax");
-
-            var statusService = new ReportYamlService(); 
-            var status = statusService.GetStatus(id,path) ?? "Non envoyé";
-
-            return Ok(new { envoiHL7 = status });
-        }
-
     }
 }

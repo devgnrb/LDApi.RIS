@@ -43,7 +43,7 @@ var app = builder.Build();
 // -------------------------
 //app.UseHttpsRedirection();
 app.UseAuthorization();
-//app.UseCors("AllowReact");
+app.UseCors("AllowReact");
 
 
 

@@ -22,7 +22,7 @@ export default function ReportCard({ report }: ReportCardProps) {
   const [status, setStatus] = useState<"loading" | "success" | "error" | null>(null);
   const [hl7, setHl7] = useState("");
   const [ack, setAck] = useState("");
-  const [envoiHL7, setEnvoiHL7] = useState("");
+  const envoiHL7 = report.envoiHL7 ?? "Non envoyé";
 
   const cardClasses = `border-2 rounded-lg p-4 shadow-md transition-all duration-200 ${
     envoiHL7 === "Envoi Réussi"
@@ -33,7 +33,7 @@ export default function ReportCard({ report }: ReportCardProps) {
   const sendHl7 = async () => {
     setStatus("loading");
     try {
-      const res = await fetch(`${apiUrl}/api/HL7/send`, {
+      const res = await fetch(`/api/HL7/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: report.idReport, client: apiClient, clientApp: apiClientApp }),
@@ -42,7 +42,7 @@ export default function ReportCard({ report }: ReportCardProps) {
       setHl7(result.hl7);
       setAck(result.ack);
       setStatus("success");
-      setEnvoiHL7("Envoi Réussi");
+
     } catch (err) {
       console.error(err);
       setStatus("error");

@@ -1,8 +1,11 @@
-﻿using LDApi.RIS.Dto;
-using LDApi.RIS.Interfaces;
-using LDApi.RIS.Utils;
-using PdfSharp.Pdf.IO;
-using Xunit;
+﻿    using LDApi.RIS.Dto;
+    using LDApi.RIS.Interfaces;
+    using LDApi.RIS.Utils;
+    using PdfSharp.Pdf.IO;
+    using Xunit;
+    using YamlDotNet.Serialization;
+    using YamlDotNet.Serialization.NamingConventions;
+    using System.IO;
 
 namespace LDApi.RIS.Services
 {
@@ -33,29 +36,69 @@ namespace LDApi.RIS.Services
                 PdfSharp.Pdf.PdfDocument document = PdfSharp.Pdf.IO.PdfReader.Open(file, PdfDocumentOpenMode.Import);
 
                 var metadata = document.Info.Keywords.Split(",");
-                var metaService = new MetaDataPDFService();
+                var metaService = new ReportYamlService();
                 ReportDto r = new ReportDto()
                 {
-                    IdReport = cpt++,
+                    IdReport = cpt,
                     LastName = metadata.Length > 0 ? metadata[0] : "Unknown",
                     FirstName = metadata.Length > 1 ? metadata[1] : "Unknown",
                     DateOfBirth = metadata.Length > 2 ? metadata[2] : "Unknown",
                     DateReport = metadata.Length > 3 ? metadata[3] : "Unknown",
                     Path = pathFileName + "\\" + fileName + ".pdf",
                     TypeDocument = "Laximétrie Dynamique",
-                    EnvoiHL7 = metaService.GetMetaDataValue(pathFileName + "\\" + fileName + ".pdf", "EnvoiHL7") ?? ""
+                    EnvoiHL7 = GetReportStatusByYml(cpt,pathFileName + "\\") ?? ""
                 };
                 reports.Add(r);
+                cpt++;
             }
             return reports;
         }
 
+        private string GetReportStatusByYml(int id, string pathDirectory)
+        {
+            try
+            {
+                var statusDirectory = Path.Combine(pathDirectory ?? "", "ReportStatus");
+                var yamlFile = Path.Combine(statusDirectory, $"Report_{id}.yml");
+                
+            if (File.Exists(yamlFile))
+            {
+                var yaml = File.ReadAllText(yamlFile);
+
+                var deserializer = new DeserializerBuilder()
+                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .Build();
+
+                var yamlStatus = deserializer.Deserialize<ReportYamlStatus>(yaml);
+
+                return yamlStatus?.EnvoiHL7 ?? "Non envoyé";
+            }
+            else
+            {
+                return "Non envoyé";
+            }
+            }catch
+            {
+                
+                return "Non envoyé";
+            }
+  
+
+        }
+
         public byte[]? GetReportById(int id)
         {
-            var files = FileHelper.GetPdfFiles(_reportDirectory);
-            var file = files.FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).GetHashCode() == id);
+            // var files = FileHelper.GetPdfFiles(_reportDirectory);
+            // var file = files.FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).GetHashCode() == id);
 
-            return file != null ? File.ReadAllBytes(file) : null;
+            // return file != null ? File.ReadAllBytes(file) : null;
+            var files = FileHelper.GetPdfFiles(_reportDirectory).ToList();
+
+            if (id < 0 || id >= files.Count)
+                return null;
+
+            var file = files[id];
+            return File.ReadAllBytes(file);
         }
 
         public ReportDto GetReport(int id)
@@ -69,5 +112,14 @@ namespace LDApi.RIS.Services
             return r;
         }
 
+    }
+
+    // Mapping YAML
+    public class ReportYamlStatus
+    {
+        public int ReportId { get; set; }
+        public string? FileName { get; set; }
+        public string? EnvoiHL7 { get; set; }
+        public DateTime Date { get; set; }
     }
 }

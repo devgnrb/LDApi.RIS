@@ -48,17 +48,7 @@
             File.WriteAllText(filePath, yaml);
         }
 
-        public string? GetStatus(int reportId, string pdfPath)
-        {
-            string filePath = Path.Combine(GetStatusDirectory(pdfPath), $"Report_{reportId}.yml");
 
-            if (!File.Exists(filePath))
-                return null;
-
-            string yaml = File.ReadAllText(filePath);
-            dynamic? data = _deserializer.Deserialize<dynamic>(yaml);
-            return data?["EnvoiHL7"];
-        }
     }
 
 
