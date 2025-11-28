@@ -1,26 +1,32 @@
 import React, { useEffect, useState } from "react";
-import ReportCard from "./ReportCard";
+import ReportCard, { Report, StatusAck } from "./ReportCard";
 import { useApi } from "../context/ApiContext";
-import toast from "react-hot-toast";
 
-interface Report {
-  idReport: number;
-  lastName: string;
-  firstName: string;
-  dateOfBirth: string;
-  dateReport: string;
-  path: string;
-  typeDocument: string;
-  envoiHL7?: string;
-}
+type FilterType = StatusAck | "ALL";
 
-const ReportList: React.FC = () => {
+export default function ReportList() {
+  //const { apiUrl } = useApi();
   const { apiUrl, apiClient, apiClientApp } = useApi();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState<"all" | "sent" | "unsent">("all");
-  const [sendingAll, setSendingAll] = useState(false);
+  const [sendingBatch, setSendingBatch] = useState(false);
+  const [filter, setFilter] = useState<FilterType>("ALL");
+  // Table de correspondance des labels
+  const ackLabels: Record<FilterType, string> = {
+    ALL: "Tous",
+    AA: "Accepté",
+    AE: "Erreur",
+    AR: "Rejeté",
+    NL: "Non envoyé",
+  };
 
+  const filterColors: Record<FilterType, string> = {
+    ALL: "bg-gray-200",
+    AA: "bg-green-200",
+    AE: "bg-red-200",
+    AR: "bg-orange-200",
+    NL: "bg-blue-200",
+  };
   useEffect(() => {
     const fetchReports = async () => {
       setLoading(true);
@@ -34,113 +40,113 @@ const ReportList: React.FC = () => {
         setLoading(false);
       }
     };
+
     fetchReports();
   }, [apiUrl]);
 
-  const handleStatusChange = (idReport: number, newStatus: string) => {
+  const updateStatus = (idReport: number, status: StatusAck) => {
     setReports(prev =>
-      prev.map(r => (r.idReport === idReport ? { ...r, envoiHL7: newStatus } : r))
+      prev.map(r => (r.idReport === idReport ? { ...r, envoiHL7: status } : r))
     );
   };
 
-  const filteredReports = reports.filter((r) => {
-    if (filter === "sent") return r.envoiHL7 === "Envoi Réussi";
-    if (filter === "unsent") return r.envoiHL7 !== "Envoi Réussi";
-    return true;
-  });
+    const handleSendAll = async () => {
+    setSendingBatch(true);
 
-  const sendAll = async () => {
-    const toSend = reports.filter(r => r.envoiHL7 !== "Envoi Réussi");
+    try {
+      const response = await fetch(`${apiUrl}/api/HL7/send-batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client: apiClient,
+          clientApp: apiClientApp,
+        }),
+      });
 
-    if (toSend.length === 0) {
-      toast("Aucun rapport à envoyer.", { icon: "ℹ️" });
-      return;
-    }
-
-    setSendingAll(true);
-    toast("Envoi des rapports en cours...");
-
-    for (const report of toSend) {
-      try {
-        const res = await fetch(`${apiUrl}/api/HL7/send`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: report.idReport,
-            client: apiClient,
-            clientApp: apiClientApp,
-          }),
-        });
-
-        let result: { ack?: string; hl7?: string } | null = null;
-        try {
-          result = await res.json();
-        } catch {
-          // si pas de JSON, on évite de planter juste pour ça
-        }
-
-        if (!res.ok) {
-          toast.error(`Erreur pour le rapport ${report.idReport}`);
-          continue; // on passe au suivant
-        }
-
-        // maj UI (bordure verte)
-        handleStatusChange(report.idReport, "Envoi Réussi");
-
-        // toast ACK HL7 pour ce rapport avant de passer au suivant
-        const ackText = result?.ack ?? "ACK non fourni";
-        toast.success(
-          `ACK reçu pour ${report.lastName} ${report.firstName} : ${ackText}`
-        );
-      } catch (err) {
-        console.error(err);
-        toast.error(`Exception lors de l'envoi du rapport ${report.idReport}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erreur backend send-batch:", errorText);
+        throw new Error(errorText || "Erreur HTTP send-batch");
       }
-    }
 
-    toast.success("Envoi groupé terminé !");
-    setSendingAll(false);
+      type BatchItem = { idReport: number; ack?: StatusAck; error?: string };
+
+      const batchResults = (await response.json()) as BatchItem[];
+
+      setReports(prev =>
+        prev.map(r => {
+          const match = batchResults.find(b => b.idReport === r.idReport);
+          return match && match.ack
+            ? { ...r, envoiHL7: match.ack }
+            : r;
+        })
+      );
+
+      alert("Envoi batch terminé ✅");
+    } catch (error) {
+      console.error("Erreur lors de l'envoi batch HL7:", error);
+      alert("Erreur lors de l'envoi batch HL7");
+    } finally {
+      setSendingBatch(false);
+    }
   };
 
 
+
+  // Filtering
+  const filteredReports =
+    filter === "ALL" ? reports : reports.filter(r => r.envoiHL7 === filter);
+
   return (
     <div className="p-5">
-      <div className="flex gap-3 mb-5">
-        <button onClick={() => setFilter("all")}
-          className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">
-          Tous
-        </button>
-
-        <button onClick={() => setFilter("unsent")}
-          className="px-4 py-2 rounded-lg bg-blue-200 hover:bg-blue-300 border border-blue-600">
-          Non envoyés
-        </button>
-
-        <button onClick={() => setFilter("sent")}
-          className="px-4 py-2 rounded-lg bg-green-200 hover:bg-green-300 border border-green-600">
-          Envoyés
-        </button>
-
-        <button
-          onClick={sendAll}
-          disabled={sendingAll}
-          className="ml-auto px-6 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 disabled:bg-gray-400"
-        >
-           Envoyer tout
-        </button>
-      </div>
-
       {loading ? (
-        <p className="text-center my-5 font-bold text-gray-600">⏳ Chargement...</p>
+        <p className="text-center font-bold text-gray-600">⏳ Chargement...</p>
       ) : (
-        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {filteredReports.map((report) => (
-            <ReportCard key={report.idReport} report={report} onStatusChange={handleStatusChange} />
-          ))}
-        </div>
+        <>
+          {/* Zone filtres + bouton batch */}
+          <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
+            
+            {/* Filtres statut */}
+            <div className="flex gap-2">
+              {(["ALL", "AA", "AE", "AR", "NL"] as FilterType[]).map(option => (
+                <button
+                  key={option}
+                  onClick={() => setFilter(option)}
+                  className={`px-3 py-1 rounded font-semibold border
+                    ${filter === option ? "text-white bg-blue-600" : filterColors[option]}`}
+                >
+                  {ackLabels[option]}
+                </button>
+              ))}
+            </div>
+
+            {/* Bouton envoi global */}
+            {reports.length > 0 && (
+              <button
+                onClick={handleSendAll}
+                disabled={sendingBatch}
+                className={`px-4 py-2 rounded-lg font-semibold text-white 
+                  ${sendingBatch ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`}
+              >
+                {sendingBatch ? "Envoi global..." : "Envoyer tous"}
+              </button>
+            )}
+          </div>
+
+          {/* Grille rapports filtrés */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredReports.map(report => (
+              <ReportCard key={report.idReport} report={report} onStatusChange={updateStatus} />
+            ))}
+          </div>
+
+          {filteredReports.length === 0 && (
+            <p className="text-center text-gray-600 mt-6">
+              — Aucun rapport pour ce filtre —
+            </p>
+          )}
+        </>
       )}
     </div>
   );
-};
-
-export default ReportList;
+}

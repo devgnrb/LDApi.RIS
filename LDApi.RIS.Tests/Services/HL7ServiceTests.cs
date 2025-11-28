@@ -34,7 +34,7 @@ public class Hl7ServiceTests
             TypeDocument = "RAD",
             DateReport = "20251107143000",
             Path = Path.GetTempFileName(),
-            EnvoiHL7 = ""
+            EnvoiHL7 = StatusAck.NL
         };
 
         File.WriteAllText(dto.Path, "PDFSIMULATEDCONTENT");
@@ -73,7 +73,7 @@ public class Hl7ServiceTests
             TypeDocument = "Laximétrie Dynamique",
             DateReport = "20251107143000",
             Path = Path.GetTempFileName(),
-            EnvoiHL7 = ""
+            EnvoiHL7 = StatusAck.NL
         };
 
         File.WriteAllText(dto.Path, "PDFSIMULATEDCONTENT");

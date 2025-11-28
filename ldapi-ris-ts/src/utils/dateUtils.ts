@@ -1,34 +1,71 @@
-export const formatDateLocal = (raw: string): string => {
-  if (!raw || raw.length < 8) return raw;
+import dayjs, { Dayjs } from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+import localizedFormat from "dayjs/plugin/localizedFormat";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
-  const year = parseInt(raw.substring(0, 4));
-  const month = parseInt(raw.substring(4, 6)) - 1;
-  const day = parseInt(raw.substring(6, 8));
 
-  let hour = 0, minute = 0, second = 0;
+// Locales disponibles 
+// europe
+import "dayjs/locale/fr";
+import "dayjs/locale/en";
+import "dayjs/locale/de";
+import "dayjs/locale/it";
+import "dayjs/locale/es";
+import "dayjs/locale/nl";
+import "dayjs/locale/pl";
+import "dayjs/locale/lt";
+// Asie
+import "dayjs/locale/zh";
+import "dayjs/locale/ko";
 
-  if (raw.length >= 10) hour = parseInt(raw.substring(8, 10));
-  if (raw.length >= 12) minute = parseInt(raw.substring(10, 12));
-  if (raw.length >= 14) second = parseInt(raw.substring(12, 14));
+dayjs.extend(customParseFormat);
+dayjs.extend(localizedFormat);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
-  const date = new Date(Date.UTC(year, month, day, hour, minute, second));
+export interface FormatResult {
+  formatted: string | null; // affichage
+  date: Dayjs | null;       // objet Dayjs utilisable
+  error?: string;           // message explicite en cas de problème
+}
 
-  const options: Intl.DateTimeFormatOptions =
-    raw.length >= 10
-      ? {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        }
-      : {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        };
+/**
+ * Convertit une chaîne brute (YYYYMMDDHHmmss, YYYYMMDD) en date locale formatée.
+ */
+export const formatDateForLocale = (
+  raw: string,
+  locale: string = navigator.language.split("-")[0],
+  tz: string = Intl.DateTimeFormat().resolvedOptions().timeZone
+): FormatResult => {
+  if (!raw) {
+    return { formatted: null, date: null, error: "input-is-empty" };
+  }
 
-  return date.toLocaleString("fr-FR", options);
+  if (raw.length < 8) {
+    return { formatted: raw, date: null, error: "input-too-short" };
+  }
+
+  // Déduction du format d'entrée
+  let inputFormat = "YYYYMMDD";
+  if (raw.length >= 14) inputFormat = "YYYYMMDDHHmmss";
+  else if (raw.length >= 12) inputFormat = "YYYYMMDDHHmm";
+  else if (raw.length >= 10) inputFormat = "YYYYMMDDHH";
+
+  // Parsing Dayjs
+  const d = dayjs(raw, inputFormat).utc().tz(tz).locale(locale);
+
+  if (!d.isValid()) {
+    return { formatted: raw, date: null, error: "invalid-date-format" };
+  }
+
+  // Format d'affichage
+  const outputFormat = raw.length >= 10 ? "L LT" : "L";
+
+  return {
+    formatted: d.format(outputFormat),
+    date: d,
+  };
 };
+
+

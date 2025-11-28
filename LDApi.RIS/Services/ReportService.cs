@@ -12,11 +12,12 @@ namespace LDApi.RIS.Services
     public class ReportService : IReportService
     {
         private readonly string _reportDirectory;
-
+        private readonly ReportYamlService _yamlService;
         // generate a singleton service 
 
-        public ReportService(IConfiguration config)
+        public ReportService(IConfiguration config, ReportYamlService yamlService)
         {
+            _yamlService = yamlService;
             _reportDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
             "Pdf_Dyneelax");
@@ -36,7 +37,8 @@ namespace LDApi.RIS.Services
                 PdfSharp.Pdf.PdfDocument document = PdfSharp.Pdf.IO.PdfReader.Open(file, PdfDocumentOpenMode.Import);
 
                 var metadata = document.Info.Keywords.Split(",");
-                var metaService = new ReportYamlService();
+                var status = _yamlService.LoadStatus(cpt);
+
                 ReportDto r = new ReportDto()
                 {
                     IdReport = cpt,
@@ -46,7 +48,7 @@ namespace LDApi.RIS.Services
                     DateReport = metadata.Length > 3 ? metadata[3] : "Unknown",
                     Path = pathFileName + "\\" + fileName + ".pdf",
                     TypeDocument = "Laximétrie Dynamique",
-                    EnvoiHL7 = GetReportStatusByYml(cpt,pathFileName + "\\") ?? ""
+                    EnvoiHL7 = status
                 };
                 reports.Add(r);
                 cpt++;
@@ -54,13 +56,13 @@ namespace LDApi.RIS.Services
             return reports;
         }
 
-        private string GetReportStatusByYml(int id, string pathDirectory)
+    private StatusAck GetReportStatusByYml(int id, string pathDirectory)
+    {
+        try
         {
-            try
-            {
-                var statusDirectory = Path.Combine(pathDirectory ?? "", "ReportStatus");
-                var yamlFile = Path.Combine(statusDirectory, $"Report_{id}.yml");
-                
+            var statusDirectory = Path.Combine(pathDirectory ?? "", "ReportStatus");
+            var yamlFile = Path.Combine(statusDirectory, $"Report_{id}.yml");
+
             if (File.Exists(yamlFile))
             {
                 var yaml = File.ReadAllText(yamlFile);
@@ -71,20 +73,20 @@ namespace LDApi.RIS.Services
 
                 var yamlStatus = deserializer.Deserialize<ReportYamlStatus>(yaml);
 
-                return yamlStatus?.EnvoiHL7 ?? "Non envoyé";
+                return Enum.TryParse<StatusAck>(yamlStatus.EnvoiHL7?.ToString(), true, out var status)
+                    ? status
+                    : StatusAck.NL;
             }
-            else
-            {
-                return "Non envoyé";
-            }
-            }catch
-            {
-                
-                return "Non envoyé";
-            }
-  
 
+            return StatusAck.NL;
         }
+        catch
+        {
+            return StatusAck.NL;
+        }
+    }
+
+
 
         public byte[]? GetReportById(int id)
         {
@@ -116,7 +118,7 @@ namespace LDApi.RIS.Services
     {
         public int ReportId { get; set; }
         public string? FileName { get; set; }
-        public string? EnvoiHL7 { get; set; }
+        public StatusAck? EnvoiHL7 { get; set; }
         public DateTime Date { get; set; }
     }
 }

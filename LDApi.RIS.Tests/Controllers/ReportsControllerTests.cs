@@ -24,8 +24,8 @@ namespace LDApi.RIS.Tests.Controllers
             // Arrange
             var fakeReports = new List<ReportDto>
             {
-                new ReportDto { IdReport = 1, LastName = "Doe", FirstName = "John", DateOfBirth = "19800101", DateReport = "20250101120012", Path = "/path/Doe_John_19800101_20250101120012_20251023.pdf", TypeDocument = "Laximétrie Dynamique",EnvoiHL7="" },
-                new ReportDto { IdReport = 2, LastName = "Smith", FirstName = "Jane", DateOfBirth = "19850202", DateReport = "20250102140523", Path = "/path/Smith_Jane_19850202_20250102140523_20251023.pdf", TypeDocument = "Laximétrie Dynamique",EnvoiHL7 = "Envoi Réussi" }
+                new ReportDto { IdReport = 1, LastName = "Doe", FirstName = "John", DateOfBirth = "19800101", DateReport = "20250101120012", Path = "/path/Doe_John_19800101_20250101120012_20251023.pdf", TypeDocument = "Laximétrie Dynamique",EnvoiHL7=StatusAck.AA },
+                new ReportDto { IdReport = 2, LastName = "Smith", FirstName = "Jane", DateOfBirth = "19850202", DateReport = "20250102140523", Path = "/path/Smith_Jane_19850202_20250102140523_20251023.pdf", TypeDocument = "Laximétrie Dynamique",EnvoiHL7 = StatusAck.AE}
             };
 
             _mockReportService

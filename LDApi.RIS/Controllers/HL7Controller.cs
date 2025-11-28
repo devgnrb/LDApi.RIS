@@ -13,13 +13,16 @@ namespace LDApi.RIS.Controllers
     {
 
         private readonly IHL7Service _hl7Service;
-        private readonly IMllpClientService _mllp;
-        private readonly IReportService _reportService;
 
-        public HL7Controller(IHL7Service hl7Service, IMllpClientService mllp, IReportService reportService)
+        private readonly IReportService _reportService;
+         private readonly IReportYamlService _yamlService;
+        private readonly IMllpClientService _mllpClient;
+
+        public HL7Controller(IHL7Service hl7Service,  IMllpClientService mllp, IReportService reportService, IReportYamlService yamlService)
         {
+            _yamlService = yamlService;
             _hl7Service = hl7Service;
-            _mllp = mllp;
+            _mllpClient = mllp;
             _reportService = reportService;
         }
 
@@ -38,55 +41,37 @@ namespace LDApi.RIS.Controllers
                                  .Where(s => !string.IsNullOrWhiteSpace(s))
                                  .ToArray();
 
-            string messageHl7 = "";
-
-            string msh10 = FileHelper.GetField(segments, "MSH", 9);
-
-                // MSH-10 non vide et format valide
-                if (String.IsNullOrEmpty(msh10))
-                    messageHl7 = "Message Control ID modifié par le client : " + msh10 + "est incorrecte";
-                else
-                {
-                    messageHl7 = "Message Control ID : " + msh10 + " est correcte";
-                }
-            
-
-   
 
             try
             {
-                var ack = await _mllp.SendMessageAsync(message);
+                var ack = await _mllpClient.SendMessageAsync(message);
+                  
+       
                 var segmentsAck = ack.Split('\r', '\n')
                                      .Where(s => !string.IsNullOrWhiteSpace(s))
                                      .ToArray();
                 string ackCode = FileHelper.GetField(segmentsAck, "MSA", 1);
-                string ackResponse = "";
+                StatusAck ackResponse = StatusAck.AR;
+                
                 switch(ackCode)
                 {
                     case "AA":
-                        ackResponse = "Accusé de réception : Accepté";
+                        ackResponse = StatusAck.AA;
                         break;
                     case "AE":
-                        ackResponse = "Accusé de réception : Rejeté - Erreur";
+                        ackResponse = StatusAck.AE;
                         break;
                     case "AR":
-                        ackResponse = "Accusé de réception : Rejeté - Refusé";
-                        break;
-                    default:
-                        ackResponse = "Accusé de réception : Code inconnu";
+                        ackResponse = StatusAck.AR;
                         break;
                 }
-                // Inserer une meta donnée de l'envoi HL7 dans le rapport 
-                if (ack != null)
-                {
-                    ReportYamlService reportYamlService = new ReportYamlService();
-                    reportYamlService.SaveStatus(report.IdReport, report.Path, "Envoi Réussi");
-                }
+
+
+                _yamlService.SaveStatus(report.IdReport, report.Path, ackResponse);
+                
 
                 return Ok(new { 
 
-                    hl7 = messageHl7, 
-                    
                     ack = ackResponse
 
 
@@ -94,9 +79,53 @@ namespace LDApi.RIS.Controllers
             }
             catch (Exception ex)
             {
+
                 return StatusCode(500, $"Erreur HL7 : {ex.Message}");
             }
         }
+
+    [HttpPost("send-batch")]
+    public async Task<IActionResult> SendBatch([FromBody] HL7SendDto request)
+    {
+
+        var reports = await _reportService.GetAllReports();
+
+        List<object> results = new();
+
+        foreach (var report in reports)
+        {
+            try
+            {
+                var message = _hl7Service.GenerateHL7Message(report, request.ClientApp, request.Client);
+
+                var ack = await _mllpClient.SendMessageAsync(message);
+
+                var ackCode = FileHelper.GetField(
+                    ack.Split('\r', '\n').Where(x => !string.IsNullOrWhiteSpace(x)).ToArray(),
+                    "MSA", 1);
+
+                StatusAck status = ackCode switch
+                {
+                    "AA" => StatusAck.AA,
+                    "AE" => StatusAck.AE,
+                    "AR" => StatusAck.AR,
+                    _ => StatusAck.NL
+                };
+
+                _yamlService.SaveStatus(report.IdReport, report.Path, status);
+
+                results.Add(new { idReport = report.IdReport, ack = status });
+            }
+            catch (Exception ex)
+            {
+                results.Add(new { idReport = report.IdReport, error = ex.Message });
+            }
+        }
+
+        return Ok(results);
+    }
+
+
 
     }
 }

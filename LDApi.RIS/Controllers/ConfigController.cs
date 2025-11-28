@@ -1,37 +1,29 @@
-﻿using LDApi.RIS.Dto;
-using LDApi.RIS.Interfaces;
+using LDApi.RIS.Services;
+using LDApi.RIS.Config;
 using Microsoft.AspNetCore.Mvc;
+
 
 namespace LDApi.RIS.Controllers
 {
     [ApiController]
-    [Route("api/config")]
+    [Route("api/[controller]")]
     public class ConfigController : ControllerBase
     {
-        private readonly IMllpConfigurationService _mllpConfig;
+        private readonly ConfigurationService _configService;
 
-        public ConfigController(IMllpConfigurationService mllpConfig)
+        public ConfigController(ConfigurationService configService)
         {
-            _mllpConfig = mllpConfig;
+            _configService = configService;
         }
 
-        [HttpPost("mllp")]
-        public IActionResult UpdateMllpConfig([FromBody] MllpConfigDto dto)
-        {
-            if (string.IsNullOrWhiteSpace(dto.Host) || dto.Port <= 0)
-                return BadRequest("Configuration MLLP invalide.");
+        [HttpGet]
+        public IActionResult Get() => Ok(_configService.Config);
 
-            _mllpConfig.Host = dto.Host;
-            _mllpConfig.Port = dto.Port;
-            return Ok(new { message = $"MLLP mis à jour : {dto.Host}:{dto.Port}" });
-        }
-
-        [HttpGet("mllp")]
-        public IActionResult GetMllpConfig()
+        [HttpPut]
+        public IActionResult Update([FromBody] AppConfig config)
         {
-            return Ok(new { host = _mllpConfig.Host, port = _mllpConfig.Port });
+            _configService.SaveConfig(config);
+            return Ok(config);
         }
     }
-
-
 }
