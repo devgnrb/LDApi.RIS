@@ -18,9 +18,31 @@ namespace LDApi.RIS.Services
         public ReportService(IConfiguration config, ReportYamlService yamlService)
         {
             _yamlService = yamlService;
-            _reportDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-            "Pdf_Dyneelax");
+    // Détection OS
+            bool isWindows = OperatingSystem.IsWindows();
+
+            string basePath;
+
+            if (isWindows)
+            {
+                // Sur Windows : Desktop
+                basePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                    "Pdf_Dyneelax"
+                );
+            }
+            else
+            {
+                // Sur Linux : ~/Pdf_Dyneelax (dans le home utilisateur)
+                basePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    "Pdf_Dyneelax"
+                );
+            }
+
+            _reportDirectory = basePath;
+
+            Directory.CreateDirectory(_reportDirectory);
         }
 
         public async Task<IEnumerable<ReportDto>> GetAllReports()

@@ -18,7 +18,12 @@
     <Exec WorkingDirectory="../ldapi-ris-ts" Command="npm run build" />
     <RemoveDir Directories="../wwwroot" />
     <MakeDir Directories="../wwwroot" />
-    <Exec WorkingDirectory="../ldapi-ris-ts" Command="xcopy build ..\wwwroot\ /E /I /Y" />
+    <!--<Exec WorkingDirectory="../ldapi-ris-ts" Command="xcopy build ..\wwwroot\ /E /I /Y" />-->
+    <!-- Windows -->
+    <Exec Condition="'$(OS)' == 'Windows_NT'" WorkingDirectory="../ldapi-ris-ts" Command="xcopy build ..\wwwroot\ /E /I /Y" />
+
+    <!-- Linux/macOS -->
+    <Exec Condition="'$(OS)' != 'Windows_NT'" WorkingDirectory="../ldapi-ris-ts" Command="cp -r build/* ../wwwroot/" />
   </Target>
 
 </Project>

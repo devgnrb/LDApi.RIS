@@ -18,6 +18,7 @@ echo "Build FRONT React..."
 cd "$FRONT_DIR"
 
 npm install --silent
+export NODE_OPTIONS="--experimental-webstorage --localstorage-file=./localstorage.json"
 npm run build
 
 cd "$ROOT_DIR"
@@ -59,8 +60,7 @@ echo "✔ Build API terminé."
 # ---------------------------------------------------------
 echo "Copie du wwwroot vers chaque release..."
 
-cp -R "$WWWROOT_DIR" "$RELEASE_DIR/linux-x64/wwwroot"
-cp -R "$WWWROOT_DIR" "$RELEASE_DIR/linux-arm64/wwwroot"
+cp -R "$WWWROOT_DIR" "$RELEASE_DIR/wwwroot"
 
 echo "==============================="
 echo "BUILD COMPLET"

@@ -8,7 +8,12 @@ import React, {
   SetStateAction,
 } from "react";
 
-// Définition du type du contexte
+// Détection sécurisée (pendant le build, window === undefined)
+const safeLocalStorage =
+  typeof window !== "undefined" && typeof window.localStorage !== "undefined"
+    ? window.localStorage
+    : null;
+
 interface ApiContextType {
   apiUrl: string;
   setApiUrl: Dispatch<SetStateAction<string>>;
@@ -18,43 +23,41 @@ interface ApiContextType {
   setApiClientApp: Dispatch<SetStateAction<string>>;
 }
 
-// Valeur par défaut (null au départ)
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
 
-// Props du provider
 interface ApiProviderProps {
   children: ReactNode;
 }
 
 export function ApiProvider({ children }: ApiProviderProps) {
-  // === États persistés dans localStorage ===
+  // ⚠️ Tous les accès initiales à localStorage doivent être sécurisés
 
   const [apiUrl, setApiUrl] = useState<string>(() => {
-    const saved = localStorage.getItem("apiUrl");
+    const saved = safeLocalStorage?.getItem("apiUrl");
     return saved || "http://localhost:5033";
   });
 
   const [apiClient, setApiClient] = useState<string>(() => {
-    const saved = localStorage.getItem("apiClient");
+    const saved = safeLocalStorage?.getItem("apiClient");
     return saved || "client";
   });
 
   const [apiClientApp, setApiClientApp] = useState<string>(() => {
-    const saved = localStorage.getItem("apiClientApp");
+    const saved = safeLocalStorage?.getItem("apiClientApp");
     return saved || "clientApp";
   });
 
   // === Persistance locale ===
   useEffect(() => {
-    localStorage.setItem("apiUrl", apiUrl);
+    safeLocalStorage?.setItem("apiUrl", apiUrl);
   }, [apiUrl]);
 
   useEffect(() => {
-    localStorage.setItem("apiClient", apiClient);
+    safeLocalStorage?.setItem("apiClient", apiClient);
   }, [apiClient]);
 
   useEffect(() => {
-    localStorage.setItem("apiClientApp", apiClientApp);
+    safeLocalStorage?.setItem("apiClientApp", apiClientApp);
   }, [apiClientApp]);
 
   return (
@@ -73,7 +76,6 @@ export function ApiProvider({ children }: ApiProviderProps) {
   );
 }
 
-// Hook personnalisé sécurisé
 export function useApi(): ApiContextType {
   const context = useContext(ApiContext);
   if (!context) {
