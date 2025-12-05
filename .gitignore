@@ -364,3 +364,11 @@ FodyWeavers.xsd
 /deploy
 
 wwwroot
+Installer
+
+# Code coverage reports
+coverage/
+coverage-report/
+TestResults/
+*.coverage
+*.coveragexml
