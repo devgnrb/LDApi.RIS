@@ -4,63 +4,87 @@ param(
 )
 
 function Fail($msg) {
-    Write-Host "$msg" -ForegroundColor Red
+    Write-Host $msg -ForegroundColor Red
     exit 1
 }
 
-Write-Host "--- Build FRONT ---" -ForegroundColor Cyan
-Set-Location .\ldapi-ris-ts
+Write-Host "=== BUILD FRONTEND ===" -ForegroundColor Cyan
+Set-Location ".\ldapi-ris-ts"
 
 npm install 
 npm run build 
 
-Set-Location ..
+Set-Location ".."
 
-Write-Host "--- Copy FRONT to wwwroot ---" -ForegroundColor Cyan
-if (!(Test-Path "./wwwroot")) {
-    New-Item -ItemType Directory -Path "./wwwroot" | Out-Null
+Write-Host "=== COPY FRONTEND ===" -ForegroundColor Cyan
+if (Test-Path ".\wwwroot") {
+    Remove-Item ".\wwwroot\*" -Recurse -Force
+}
+Copy-Item ".\ldapi-ris-ts\build\*" ".\wwwroot" -Recurse -Force
+
+Write-Host "=== PUBLISH BACKEND ===" -ForegroundColor Cyan
+if (Test-Path ".\publish") {
+    Remove-Item ".\publish\*" -Recurse -Force
 }
 
-Remove-Item .\wwwroot\* -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item .\ldapi-ris-ts\build\* .\wwwroot -Recurse -Force
-
-Write-Host "--- Publish API ---" -ForegroundColor Cyan
-dotnet publish .\LDApi.RIS\LDApi.RIS.csproj `
+dotnet publish ".\LDApi.RIS\LDApi.RIS.csproj" `
     -c $Configuration `
     -r $Runtime `
     --self-contained false `
-    -o ".\publish" `
-   
+    -o ".\publish"
 
-Write-Host "--- Generate WiX v3 fragment (HEAT) ---" -ForegroundColor Cyan
-Set-Location .\Installer
+Write-Host "=== ENTER INSTALLER ===" -ForegroundColor Cyan
+Set-Location ".\Installer"
 
-# supprimer ancien fichier
-Remove-Item ".\Wwwroot.Generated.wxs" -Force -ErrorAction SilentlyContinue
+# Nettoyage
+Remove-Item ".\*.wxs" -Exclude "Setup.wxs" -Force -ErrorAction SilentlyContinue
+Remove-Item ".\obj" -Recurse -Force -ErrorAction SilentlyContinue
 
-# commande heat.exe (WiX 3)
+Write-Host "=== HARVEST BACKEND (publish -> BACKEND) ===" -ForegroundColor Cyan
+heat dir "..\publish" `
+  -cg BackendFiles `
+  -dr BACKENDFOLDER `
+  -gg `
+  -sfrag `
+  -sreg `
+  -srd `
+  -var var.BACKEND `
+  -out "Backend.Generated.wxs"
+
+
+Write-Host "=== HARVEST FRONTEND (wwwroot) ===" -ForegroundColor Cyan
 heat dir "..\wwwroot" `
-    -cg WwwrootFiles `
-    -dr WWWROOT `
-    -gg `
-    -sfrag `
-    -sreg `
-    -var var.WWWROOT `
-    -out "Wwwroot.Generated.wxs" `
-   
+  -cg WwwrootFiles `
+  -dr WWWROOT `
+  -gg `
+  -sfrag `
+  -sreg `
+  -srd `
+  -var var.WWWROOT `
+  -out "Wwwroot.Generated.wxs"
 
-Write-Host "--- Compile with Candle ---" -ForegroundColor Cyan
-candle.exe ".\Setup.wxs" ".\Wwwroot.Generated.wxs" `
+
+Write-Host "=== COMPILE (CANDLE) ===" -ForegroundColor Cyan
+candle.exe `
+    Setup.wxs `
+    Backend.Generated.wxs `
+    Wwwroot.Generated.wxs `
+    -dBACKEND="..\publish" `
     -dWWWROOT="..\wwwroot" `
     -out ".\obj\" `
-  
-
-Write-Host "--- Link with Light ---" -ForegroundColor Cyan
-light.exe ".\obj\Setup.wixobj" ".\obj\Wwwroot.Generated.wixobj" `
-    -dWWWROOT="..\wwwroot" `
-    -ext WixUtilExtension `
-    -ext WixUIExtension `
-    -out "LDApi-RIS.msi" `
     
 
-Write-Host " MSI cree : Installer\LDApi-RIS.msi" -ForegroundColor Green
+Write-Host "=== LINK (LIGHT) ===" -ForegroundColor Cyan
+light.exe `
+    ".\obj\Setup.wixobj" `
+    ".\obj\Backend.Generated.wixobj" `
+    ".\obj\Wwwroot.Generated.wixobj" `
+    -ext WixUIExtension `
+    -b . `
+    -cultures:fr-FR `
+    -loc "fr-FR.wxl" `
+    -out "LDApi-RIS.msi" `
+ 
+
+Write-Host "=== MSI GENERE ===" -ForegroundColor Green
+Write-Host "Installer\LDApi-RIS.msi"
