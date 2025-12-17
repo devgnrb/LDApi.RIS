@@ -60,6 +60,7 @@ export function ApiProvider({ children }: ApiProviderProps) {
     safeLocalStorage?.setItem("apiClientApp", apiClientApp);
   }, [apiClientApp]);
 
+
   return (
     <ApiContext.Provider
       value={{

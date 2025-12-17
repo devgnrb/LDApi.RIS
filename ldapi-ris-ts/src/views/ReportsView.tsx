@@ -1,12 +1,9 @@
 import React from "react";
-import NavBar from "../components/NavBar";
 import ReportList from "../components/ReportList";
 
 const ReportsView: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Barre de navigation */}
-      <NavBar />
 
       {/* Contenu principal */}
       <main className="flex-1 p-5">

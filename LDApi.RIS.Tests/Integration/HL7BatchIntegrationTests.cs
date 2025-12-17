@@ -3,15 +3,17 @@ using System.Net.Http.Json;
 using LDApi.RIS.Dto;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using LDApi.RIS.Tests.Infrastructure;
 
 namespace LDApi.RIS.Tests.Integration
 {
-    public class HL7BatchIntegrationTests : IClassFixture<TestAppFactory>
+    public class HL7BatchIntegrationTests
     {
         private readonly HttpClient _client;
 
-        public HL7BatchIntegrationTests(TestAppFactory factory)
+        public HL7BatchIntegrationTests()
         {
+            var factory = new TestAppFactory(TestMode.FullMockServices);
             _client = factory.CreateClient();
         }
 
