@@ -1,0 +1,7 @@
+ris:
+  host: http://localhost:5033
+  client: client
+  clientApp: clientApp
+mllp:
+  host: 127.0.0.1
+  port: 6661

@@ -1,0 +1,58 @@
+name: .NET CI
+
+on:
+  push:
+    branches: [ "dev", "main" ]
+  pull_request:
+    branches: [ "dev"]
+
+jobs:
+  build-test-coverage:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          9.0.x
+          8.0.x
+
+    - name: Setup Node (frontend build optional)
+      uses: actions/setup-node@v4
+      with:
+        node-version: 25
+
+    # ---- Back Build ----
+    - name: Restore dependencies
+      run: dotnet restore LDApi.RIS/LDApi.RIS.csproj
+
+    - name: Build .NET project
+      run: dotnet build LDApi.RIS/LDApi.RIS.csproj --configuration Release --no-restore
+
+    # ---- Test + Coverage ----
+    - name: Run Tests with coverage
+      run: |
+        dotnet test LDApi.RIS.Tests/LDApi.RIS.Tests.csproj `
+          /p:CollectCoverage=true `
+          /p:CoverletOutput=TestResults/coverage.xml `
+          /p:CoverletOutputFormat=opencover
+
+    - name: Install ReportGenerator
+      run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 5.3.7
+
+    - name: Generate Coverage Report
+      run: reportgenerator `
+          -reports:"LDApi.RIS.Tests/TestResults/coverage.xml" `
+          -targetdir:"coverage-report" `
+          -reporttypes:Html
+
+    # ---- Publier le rapport dans GitHub Actions ----
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage-report
+        path: coverage-report

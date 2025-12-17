@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+	<PreserveCompilationContext>true</PreserveCompilationContext>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PDFsharp" Version="6.2.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+	  <PackageReference Include="YamlDotNet" Version="16.3.0" />
+  </ItemGroup>
+  <Target Name="BuildFrontend" AfterTargets="Publish">
+    <Exec WorkingDirectory="../ldapi-ris-ts" Command="npm install" />
+    <Exec WorkingDirectory="../ldapi-ris-ts" Command="npm run build" />
+    <RemoveDir Directories="../wwwroot" />
+    <MakeDir Directories="../wwwroot" />
+    <!--<Exec WorkingDirectory="../ldapi-ris-ts" Command="xcopy build ..\wwwroot\ /E /I /Y" />-->
+    <!-- Windows -->
+    <Exec Condition="'$(OS)' == 'Windows_NT'" WorkingDirectory="../ldapi-ris-ts" Command="xcopy build ..\wwwroot\ /E /I /Y" />
+
+    <!-- Linux/macOS -->
+    <Exec Condition="'$(OS)' != 'Windows_NT'" WorkingDirectory="../ldapi-ris-ts" Command="cp -r build/* ../wwwroot/" />
+  </Target>
+
+</Project>
