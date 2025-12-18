@@ -5,24 +5,33 @@ using LDApi.RIS.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Identity;
 
 namespace LDApi.RIS.Tests.Infrastructure
 {
     internal class TestAppFactory : WebApplicationFactory<Program>
     {
         private readonly TestMode _mode;
+        private SqliteConnection? _connection;
 
-        public TestAppFactory(TestMode mode)
-        {
-            _mode = mode;
-        }
+        public TestAppFactory(TestMode mode) => _mode = mode;
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-
+            builder.ConfigureAppConfiguration((context, config) =>
+            {
+                config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Jwt:Issuer"] = "TestIssuer",
+                    ["Jwt:Audience"] = "TestAudience",
+                    ["Jwt:Secret"] = "THIS_IS_A_TEST_SECRET_KEY_123456789_123456789"
+                });
+            });
             builder.ConfigureTestServices(services =>
             {
                 // --- Mode AuthOnly : désactiver services métier ---
@@ -32,16 +41,44 @@ namespace LDApi.RIS.Tests.Infrastructure
                     services.RemoveAll(typeof(IReportYamlService));
                     services.RemoveAll(typeof(IMllpClientService));
 
-                    // --- Appliquer les migrations pour que AspNetUsers existe ---
-                    using (var sp = services.BuildServiceProvider())
-                    using (var scope = sp.CreateScope())
+
+                    // 1) Retirer le AuthDbContext existant 
+                    services.RemoveAll(typeof(DbContextOptions<AuthDbContext>));
+
+                    // 2) Créer une connexion SQLite in-memory unique pour cette factory
+                    _connection = new SqliteConnection("DataSource=:memory:");
+                    _connection.Open();
+
+                    // 3) Ré-enregistrer AuthDbContext sur SQLite in-memory
+                    services.RemoveAll(typeof(DbContextOptions<AuthDbContext>));
+
+                    _connection = new SqliteConnection("DataSource=:memory:");
+                    _connection.Open();
+
+                    services.AddDbContext<AuthDbContext>(options =>
+                        options.UseSqlite(_connection));
+
+                    // 4) Appliquer les migrations + créer le rôle dans LE MÊME scope
+                    using var sp = services.BuildServiceProvider();
+                    using var scope = sp.CreateScope();
+
+                    var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+                    db.Database.Migrate();
+
+                    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                    foreach (var role in new[] { "User", "Admin" })
                     {
-                        var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-                        db.Database.Migrate(); // <-- essentiel
-                        var context = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-                        var tables = context.Database.ExecuteSqlRaw(
-                            "SELECT name FROM sqlite_master WHERE type='table';");
+                        if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
+                        {
+                            var result = roleManager.CreateAsync(new IdentityRole(role)).GetAwaiter().GetResult();
+                            if (!result.Succeeded)
+                            {
+                                var errors = string.Join(", ", result.Errors.Select(e => $"{e.Code}:{e.Description}"));
+                                throw new InvalidOperationException($"Failed to create role 'User': {errors}");
+                            }
+                        }
                     }
+
                 }
                 if (_mode == TestMode.FullMockServices)
                 {
@@ -63,6 +100,9 @@ namespace LDApi.RIS.Tests.Infrastructure
                         services.Remove(descriptorMllp);
 
                     // Ajoute des mocks/fakes
+                    services.AddScoped<IReportService>(_ => new FakeReportService());
+                    services.AddScoped<IReportYamlService>(_ => new FakeReportYamlService());
+                    services.AddScoped<IMllpClientService>(_ => new FakeMllpClientService());
                     services.AddScoped(_ =>
                     {
                         var mockReport = new Mock<IReportService>();
@@ -71,20 +111,46 @@ namespace LDApi.RIS.Tests.Infrastructure
                     });
                     services.AddScoped(_ =>
                     {
-                        var mockReportYAML = new Mock<IReportYamlService>();
-                        // si nécessaire : mockReportYAML.Setup(...)
-                        return mockReportYAML.Object;
+                        var mockReport = new Mock<IReportService>();
+                        mockReport.Setup(s => s.GetAllReports())
+                                .ReturnsAsync(new List<ReportDto>
+                                {
+                                    new ReportDto { IdReport = 1, FirstName="John",
+                                    LastName="Doe", DateOfBirth="01/01/2001",DateReport="25/11/2025",
+                                    Path="\\PdfDyneelax\toot.pdf",
+                                    TypeDocument="Laximetrie Dynamique",
+                                    EnvoiHL7 = StatusAck.NL  },
+                                    new ReportDto { IdReport = 2, FirstName="Anna",
+                                    LastName="Smith",  DateOfBirth="01/01/1991",DateReport="30/12/2024",
+                                    Path="\\PdfDyneelax\anna_smith.pdf",
+                                    TypeDocument="Laximetrie Dynamique",
+                                    EnvoiHL7 = StatusAck.NL  },
+                                });
+                        return mockReport.Object;
                     });
                     services.AddScoped(_ =>
                     {
                         var mockMllp = new Mock<IMllpClientService>();
-                        // si nécessaire : mockMllp.Setup(...)
+                        mockMllp.Setup(s => s.SendMessageAsync(It.Is<string>(m => m.Contains("Doe"))))
+                                .ReturnsAsync("MSH|^~\\&|LDApiRIS|Genourob|LDApiRIS|Genourob|20251113134902||ACK^R33|1234|P|2.3\rMSA|AA|1");
+                        mockMllp.Setup(s => s.SendMessageAsync(It.Is<string>(m => m.Contains("Smith"))))
+                                .ReturnsAsync("MSH|^~\\&|LDApiRIS|Genourob|LDApiRIS|Genourob|20251113134902||ACK^R33|1234|P|2.3\rMSA|AE|2");
                         return mockMllp.Object;
                     });
                 }
 
 
             });
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (disposing)
+            {
+                _connection?.Dispose();
+                _connection = null;
+            }
         }
     }
 
@@ -163,5 +229,10 @@ namespace LDApi.RIS.Tests.Infrastructure
 
             return StatusAck.NL;  // valeur par défaut si non trouvé
         }
+
+
+
     }
+
+
 }
