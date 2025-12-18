@@ -37,7 +37,7 @@ Write-Host "=== ENTER INSTALLER ===" -ForegroundColor Cyan
 Set-Location ".\Installer"
 
 # Nettoyage
-Remove-Item ".\*.wxs" -Exclude "Setup.wxs" -Force -ErrorAction SilentlyContinue
+Remove-Item ".\*.wxs" -Exclude "Setup.wxs","Bundle.wxs" -Force -ErrorAction SilentlyContinue
 Remove-Item ".\obj" -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "=== HARVEST BACKEND (publish -> BACKEND) ===" -ForegroundColor Cyan
@@ -88,3 +88,22 @@ light.exe `
 
 Write-Host "=== MSI GENERE ===" -ForegroundColor Green
 Write-Host "Installer\LDApi-RIS.msi"
+
+# =========================
+# BUILD BUNDLE (WiX Burn)
+# =========================
+
+Write-Host "=== BUILD BUNDLE ===" -ForegroundColor Cyan
+
+candle.exe Bundle.wxs `
+  -ext WixBalExtension `
+  -ext WixUtilExtension `
+  -out ".\obj\Bundle.wixobj"
+
+light.exe ".\obj\Bundle.wixobj" `
+  -ext WixBalExtension `
+  -ext WixUtilExtension `
+  -out "Setup.exe"
+
+Write-Host "=== SETUP FINAL GENERE ===" -ForegroundColor Green
+Write-Host "Installer\Setup.exe"

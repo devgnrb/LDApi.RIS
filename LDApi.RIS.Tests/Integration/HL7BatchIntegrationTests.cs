@@ -9,11 +9,13 @@ namespace LDApi.RIS.Tests.Integration
 {
     public class HL7BatchIntegrationTests
     {
+
         private readonly HttpClient _client;
 
         public HL7BatchIntegrationTests()
         {
             var factory = new TestAppFactory(TestMode.FullMockServices);
+
             _client = factory.CreateClient();
         }
 
@@ -42,8 +44,8 @@ namespace LDApi.RIS.Tests.Integration
             Assert.NotNull(results);
             Assert.Equal(2, results!.Count);
 
-            var first = results.First(r => r.Ack == StatusAck.AA);
-            var second = results.First(r => r.Ack == StatusAck.AE);
+            var first = results.Single(r => r.Ack == StatusAck.AA);
+            var second = results.Single(r => r.Ack == StatusAck.AE);
 
             Assert.Equal(StatusAck.AA, first.Ack);
             Assert.Equal(StatusAck.AE, second.Ack);

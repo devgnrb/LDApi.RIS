@@ -16,13 +16,13 @@ namespace LDApi.RIS.Tests.Integration
         {
             var factory = new TestAppFactory(TestMode.AuthOnly);
             _client = factory.CreateClient();
+
+
         }
 
         [Fact]
         public async Task RegisterLoginAndAccessProtectedEndpoint_ShouldSucceed()
         {
-
-
             // 1. Register
             var registerResponse = await _client.PostAsJsonAsync("/api/Auth/register", new
             {
@@ -51,14 +51,19 @@ namespace LDApi.RIS.Tests.Integration
             var secureResponse = await _client.GetAsync("/api/Secure/secret-data");
             secureResponse.EnsureSuccessStatusCode();
 
-            var secureContent = await secureResponse.Content.ReadFromJsonAsync<dynamic>();
-            string u = (string)secureContent.user;
-            Assert.Equal("testuser", u);
+            var secureContent = await secureResponse.Content.ReadFromJsonAsync<SecureResponseDto>();
+            Assert.NotNull(secureContent);
+            Assert.Equal("testuser", secureContent!.User);
         }
 
         private class JwtLoginResponse
         {
             public string? Token { get; set; }
+        }
+
+        private sealed class SecureResponseDto
+        {
+            public string? User { get; set; }
         }
     }
 

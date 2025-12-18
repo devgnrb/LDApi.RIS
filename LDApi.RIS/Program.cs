@@ -16,6 +16,10 @@ var builder = WebApplication.CreateBuilder(args);
 var isTesting = builder.Environment.EnvironmentName == "Development" &&
                 AppDomain.CurrentDomain.FriendlyName.Contains("test", StringComparison.OrdinalIgnoreCase);
 
+
+var isIntegrationTest =
+    builder.Environment.IsEnvironment("Test") ||
+    AppDomain.CurrentDomain.FriendlyName.Contains("test", StringComparison.OrdinalIgnoreCase);
 // --- Services DI ---
 
 builder.Services.AddScoped<IReportService, ReportService>();
@@ -88,10 +92,21 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// Apply migrations at startup
+// 1. Appliquer les migrations
+if (!isIntegrationTest)
 {
-    var services = scope.ServiceProvider;
-    await IdentitySeeder.SeedAsync(services);
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+        db.Database.Migrate();
+    }
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        await IdentitySeeder.SeedAsync(services);
+    }
 }
 // gestion des roles (user et administrateur)
 
@@ -108,15 +123,12 @@ static async Task SeedRolesAsync(IServiceProvider services)
             await roleManager.CreateAsync(new IdentityRole(role));
     }
 }
-
-await SeedRolesAsync(app.Services);
-
-// Apply migrations at startup
-using (var scope = app.Services.CreateScope())
+if (!isIntegrationTest)
 {
-    var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-    db.Database.Migrate();
+    await SeedRolesAsync(app.Services);
 }
+
+
 
 app.UseRouting();
 
@@ -126,8 +138,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Servir le front React + fichiers statiques, seulement si nécessaire
-isTesting = builder.Environment.EnvironmentName == "Development" &&
-AppDomain.CurrentDomain.FriendlyName.Contains("test", StringComparison.OrdinalIgnoreCase);
+
 
 if (!isTesting)
 {
